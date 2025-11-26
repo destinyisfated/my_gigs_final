@@ -5,11 +5,23 @@ import { Search } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import heroImage from "@/assets/hero-freelancers.jpg";
 import { MpesaPaymentModal } from "./MpesaPaymentModal";
+// 1. Import the Clerk hook
+import { useUser } from "@clerk/clerk-react";
 
 export const Hero = () => {
   const [showMpesaModal, setShowMpesaModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
+
+  // 2. Get user details
+  const { user, isLoaded } = useUser();
+
+  // 3. Extract the role safely (assuming it's stored in publicMetadata)
+  // You might need to adjust 'role' string values based on your database setup
+  const role = user?.publicMetadata?.role as string | undefined;
+
+  // 4. Define the logic
+  const isFreelancerOrAdmin = role === "freelancer" || role === "admin";
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
@@ -74,26 +86,35 @@ export const Hero = () => {
               </Button>
             </div>
 
-            {/* CTA Buttons */}
+            {/* CTA Buttons - CONDITIONAL RENDERING APPLIED HERE */}
             <div className="flex flex-wrap gap-4">
-              <Button variant="secondary" size="lg" asChild>
+              {/* Everyone sees Find Freelancers, or specifically emphasized for Admins/Freelancers */}
+              <Button className="w-full" variant="secondary" size="lg" asChild>
                 <Link to="/browse">Find Freelancers</Link>
               </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                asChild
-                className="bg-white/50 dark:bg-gray-950/50 backdrop-blur"
-              >
-                <Link to="/post-job">Post a Job</Link>
-              </Button>
-              <Button
-                variant="accent"
-                size="lg"
-                onClick={() => setShowMpesaModal(true)}
-              >
-                Become a Freelancer
-              </Button>
+
+              {/* Only show these if the user is NOT a freelancer or admin */}
+              {/* Checks if loaded first to prevent hydration flicker */}
+              {isLoaded && !isFreelancerOrAdmin && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    asChild
+                    className="bg-white/50 dark:bg-gray-950/50 backdrop-blur"
+                  >
+                    <Link to="/post-job">Post a Job</Link>
+                  </Button>
+
+                  <Button
+                    variant="accent"
+                    size="lg"
+                    onClick={() => setShowMpesaModal(true)}
+                  >
+                    Become a Freelancer
+                  </Button>
+                </>
+              )}
             </div>
 
             {/* Stats */}

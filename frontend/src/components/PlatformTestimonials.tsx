@@ -8,11 +8,10 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  //   DialogTrigger, // Removed: We will control opening programmatically
 } from "@/components/ui/dialog";
-// API imports - uncomment when ready to connect to Django backend
-// import { useEffect } from "react";
-// import { fetchTestimonials, createTestimonial, type Testimonial } from "@/lib/api";
+// 1. Import Clerk hooks
+import { useUser, useClerk } from "@clerk/clerk-react";
 
 interface Testimonial {
   id: number;
@@ -25,24 +24,14 @@ interface Testimonial {
   avatar: string;
 }
 
-
-// ============================================
-// MOCK DATA - Replace with Django API call
-// ============================================
-// DJANGO BACKEND SETUP:
-// 1. Create Testimonial model with fields: name, role, company, location, content, rating, avatar, is_approved
-// 2. Create endpoint: GET /api/testimonials/ (filter by is_approved=True for public display)
-// 3. Create endpoint: POST /api/testimonials/ (to submit new testimonials)
-// 4. Add admin moderation for is_approved field
-// 5. When ready, uncomment the useEffect below to fetch from API
-
 const initialTestimonials: Testimonial[] = [
   {
     id: 1,
     name: "Amara Okafor",
     role: "Marketing Director",
     company: "TechVentures Nigeria",
-    content: "MyGigs Africa has revolutionized how we find talent. The quality of freelancers is exceptional, and the platform makes everything seamless!",
+    content:
+      "MyGigs Africa has revolutionized how we find talent. The quality of freelancers is exceptional, and the platform makes everything seamless!",
     rating: 5,
     avatar: "AO",
   },
@@ -51,7 +40,8 @@ const initialTestimonials: Testimonial[] = [
     name: "David Kamau",
     role: "Freelance Developer",
     location: "Nairobi, Kenya",
-    content: "As a freelancer, MyGigs Africa has connected me with amazing clients across Africa. My income has tripled and the opportunities keep coming!",
+    content:
+      "As a freelancer, MyGigs Africa has connected me with amazing clients across Africa. My income has tripled and the opportunities keep coming!",
     rating: 5,
     avatar: "DK",
   },
@@ -60,73 +50,38 @@ const initialTestimonials: Testimonial[] = [
     name: "Fatima Hassan",
     role: "Content Creator",
     location: "Cairo, Egypt",
-    content: "The platform is incredibly user-friendly. I've built a solid client base in just 3 months, and the payment options are flexible and secure.",
+    content:
+      "The platform is incredibly user-friendly. I've built a solid client base in just 3 months, and the payment options are flexible and secure.",
     rating: 5,
     avatar: "FH",
   },
 ];
 
 export const PlatformTestimonials = () => {
-  const [testimonials, setTestimonials] = useState<Testimonial[]>(initialTestimonials);
+  const [testimonials, setTestimonials] =
+    useState<Testimonial[]>(initialTestimonials);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  // ============================================
-  // API INTEGRATION - Uncomment when ready
-  // ============================================
-  // const [isLoading, setIsLoading] = useState(false);
-  
-  // Step 1: Fetch approved testimonials on mount
-  // useEffect(() => {
-  //   async function loadTestimonials() {
-  //     try {
-  //       setIsLoading(true);
-  //       // Call Django API: GET /api/testimonials/ (returns only is_approved=True)
-  //       const data = await fetchTestimonials();
-  //       setTestimonials(data);
-  //     } catch (error) {
-  //       console.error('Failed to fetch testimonials:', error);
-  //       // Keep using mock data on error
-  //     } finally {
-  //       setIsLoading(false);
-  //     }
-  //   }
-  //   loadTestimonials();
-  // }, []);
+  // 2. Initialize Clerk hooks
+  const { isSignedIn, user } = useUser();
+  const { openSignIn } = useClerk();
 
   const handleSubmitReview = (rating: number, content: string) => {
-    // ============================================
-    // API INTEGRATION - Uncomment when ready
-    // ============================================
-    // async function submitTestimonial() {
-    //   try {
-    //     // Call Django API: POST /api/testimonials/
-    //     // In production, get name from authenticated user context
-    //     const newTestimonial = await createTestimonial({
-    //       name: "User Name", // Get from auth context
-    //       content,
-    //       rating,
-    //     });
-    //     // Note: New testimonial won't appear until admin approves (is_approved=True)
-    //     setIsDialogOpen(false);
-    //     // Show success message
-    //     console.log('Testimonial submitted for review');
-    //   } catch (error) {
-    //     console.error('Failed to submit testimonial:', error);
-    //   }
-    // }
-    // submitTestimonial();
-    
-    // MOCK implementation (remove when using API)
+    // MOCK implementation
     const newTestimonial: Testimonial = {
       id: Date.now(),
-      name: "Anonymous User", // In production, get from user session
+      // 3. Use actual user name if available
+      name: user?.fullName || user?.firstName || "Anonymous User",
       role: "Platform User",
       content,
       rating,
-      avatar: "AU",
+      avatar: user?.firstName
+        ? user.firstName.charAt(0).toUpperCase() +
+          (user.lastName ? user.lastName.charAt(0).toUpperCase() : "")
+        : "AU",
     };
-    
+
     setTestimonials([newTestimonial, ...testimonials]);
     setIsDialogOpen(false);
   };
@@ -136,14 +91,29 @@ export const PlatformTestimonials = () => {
   };
 
   const prevSlide = () => {
-    setCurrentIndex((prev) => (prev - 1 + testimonials.length) % testimonials.length);
+    setCurrentIndex(
+      (prev) => (prev - 1 + testimonials.length) % testimonials.length
+    );
   };
 
   const goToSlide = (index: number) => {
     setCurrentIndex(index);
   };
 
-  const averageRating = (testimonials.reduce((sum, t) => sum + t.rating, 0) / testimonials.length).toFixed(1);
+  // 4. New Handler: Check auth before opening dialog
+  const handleShareExperience = () => {
+    if (!isSignedIn) {
+      // If not logged in, open Clerk Login Modal
+      openSignIn();
+    } else {
+      // If logged in, open the Review Dialog
+      setIsDialogOpen(true);
+    }
+  };
+
+  const averageRating = (
+    testimonials.reduce((sum, t) => sum + t.rating, 0) / testimonials.length
+  ).toFixed(1);
 
   return (
     <section className="py-20 bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
@@ -158,22 +128,33 @@ export const PlatformTestimonials = () => {
           <div className="flex items-center justify-center gap-3 mb-6">
             <div className="flex items-center gap-1">
               {[...Array(5)].map((_, i) => (
-                <Star key={i} className="h-5 w-5 fill-yellow-500 text-yellow-500" />
+                <Star
+                  key={i}
+                  className="h-5 w-5 fill-yellow-500 text-yellow-500"
+                />
               ))}
             </div>
-            <span className="text-xl font-bold text-gray-900 dark:text-white">{averageRating}</span>
+            <span className="text-xl font-bold text-gray-900 dark:text-white">
+              {averageRating}
+            </span>
             <span className="text-sm text-gray-600 dark:text-gray-400">
               ({testimonials.length} reviews)
             </span>
           </div>
 
+          {/* 5. Modified Button and Dialog Structure */}
+          {/* We removed DialogTrigger and attached onClick to the Button directly */}
+          <Button
+            variant="default"
+            size="lg"
+            className="gap-2"
+            onClick={handleShareExperience}
+          >
+            <Plus className="h-5 w-5" />
+            Share Your Experience
+          </Button>
+
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="default" size="lg" className="gap-2">
-                <Plus className="h-5 w-5" />
-                Share Your Experience
-              </Button>
-            </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Share Your MyGigs Africa Experience</DialogTitle>
@@ -191,7 +172,7 @@ export const PlatformTestimonials = () => {
         <div className="relative max-w-4xl mx-auto">
           {/* Main Testimonial Card */}
           <div className="overflow-hidden">
-            <div 
+            <div
               className="flex transition-transform duration-500 ease-out"
               style={{ transform: `translateX(-${currentIndex * 100}%)` }}
             >
@@ -202,7 +183,10 @@ export const PlatformTestimonials = () => {
                       {/* Rating */}
                       <div className="flex justify-center mb-6">
                         {[...Array(testimonial.rating)].map((_, i) => (
-                          <Star key={i} className="h-6 w-6 fill-yellow-500 text-yellow-500" />
+                          <Star
+                            key={i}
+                            className="h-6 w-6 fill-yellow-500 text-yellow-500"
+                          />
                         ))}
                       </div>
 
@@ -217,11 +201,14 @@ export const PlatformTestimonials = () => {
                           {testimonial.avatar}
                         </div>
                         <div className="text-left">
-                          <div className="font-semibold text-lg text-gray-900 dark:text-white">{testimonial.name}</div>
+                          <div className="font-semibold text-lg text-gray-900 dark:text-white">
+                            {testimonial.name}
+                          </div>
                           <div className="text-sm text-gray-600 dark:text-gray-400">
                             {testimonial.role}
                             {testimonial.company && `, ${testimonial.company}`}
-                            {testimonial.location && ` • ${testimonial.location}`}
+                            {testimonial.location &&
+                              ` • ${testimonial.location}`}
                           </div>
                         </div>
                       </div>
@@ -257,8 +244,8 @@ export const PlatformTestimonials = () => {
                 key={index}
                 onClick={() => goToSlide(index)}
                 className={`h-2 rounded-full transition-all duration-300 ${
-                  index === currentIndex 
-                    ? "w-8 bg-primary" 
+                  index === currentIndex
+                    ? "w-8 bg-primary"
                     : "w-2 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500"
                 }`}
                 aria-label={`Go to testimonial ${index + 1}`}
