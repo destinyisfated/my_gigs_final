@@ -25,11 +25,11 @@ async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise
     ...options.headers,
   };
 
-  // If you need authentication, add token to headers:
-  // const token = localStorage.getItem('authToken');
-  // if (token) {
-  //   headers['Authorization'] = `Bearer ${token}`;
-  // }
+  // If you need authentication, add token to headers:   3 lines uncommented
+  const token = localStorage.getItem('authToken');
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
 
   try {
     const response = await fetch(url, {
@@ -53,12 +53,12 @@ async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise
 // ============================================
 
 // --------------------------------------------
-// Freelancers API
+// Freelancers API  uncommented
 // --------------------------------------------
-// Django Model: Freelancer
-// Django Serializer: FreelancerSerializer
-// Django ViewSet: FreelancerViewSet
-// URL Pattern: /api/freelancers/
+Django Model: FreelancerProfile
+Django Serializer: FreelancerProfileSerializer
+Django ViewSet: FreelancerProfileViewSet
+URL Pattern: /mygigs/freelancers/
 
 export interface Freelancer {
   id: number;

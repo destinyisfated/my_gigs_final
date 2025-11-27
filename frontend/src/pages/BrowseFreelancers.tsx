@@ -37,7 +37,7 @@ import { motion } from "framer-motion";
 import { useKenyaLocations } from "@/hooks/useKenyaLocations";
 import { LocationSelect } from "@/components/LocationSelect";
 // API imports - uncomment when ready to connect to Django backend
-// import { fetchFreelancers, fetchProfessions, type Freelancer, type Profession } from "@/lib/api";
+import { fetchFreelancers, fetchProfessions, type Freelancer, type Profession } from "@/lib/api";
 
 // ============================================
 // MOCK DATA - Replace with Django API calls
@@ -568,42 +568,15 @@ const BrowseFreelancers = () => {
   // API INTEGRATION - Uncomment when ready
   // ============================================
   // Step 1: Add state for loading and error
-  // const [isLoading, setIsLoading] = useState(false);
-  // const [apiError, setApiError] = useState<string | null>(null);
-  // const [totalCount, setTotalCount] = useState(0); // Total freelancers from API
+  const [isLoading, setIsLoading] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [totalCount, setTotalCount] = useState(0); // Total freelancers from API
 
   // Step 2: Replace allFreelancers with API data
-  // const [freelancersData, setFreelancersData] = useState<Freelancer[]>([]);
+  const [freelancersData, setFreelancersData] = useState<Freelancer[]>([]);
 
   // Step 3: Fetch freelancers whenever filters change
-  // useEffect(() => {
-  //   async function loadFreelancers() {
-  //     try {
-  //       setIsLoading(true);
-  //       // Call Django API with all filter parameters
-  //       const response = await fetchFreelancers({
-  //         search: searchQuery,
-  //         county: selectedCountyName,
-  //         constituency: selectedConstituencyName,
-  //         ward: selectedWardName,
-  //         profession: selectedProfession?.name,
-  //         min_rate: priceRange[0],
-  //         max_rate: priceRange[1],
-  //         page: currentPage,
-  //         page_size: ITEMS_PER_PAGE,
-  //       });
-  //       // Django returns: { results: Freelancer[], count: number }
-  //       setFreelancersData(response.results);
-  //       setTotalCount(response.count);
-  //     } catch (error) {
-  //       console.error('Failed to fetch freelancers:', error);
-  //       setApiError('Failed to load freelancers');
-  //     } finally {
-  //       setIsLoading(false);
-  //     }
-  //   }
-  //   loadFreelancers();
-  // }, [searchQuery, selectedCountyName, selectedConstituencyName, selectedWardName, selectedProfession, priceRange, currentPage]);
+     priceRange, currentPage]);
 
   const [selectedCounty, setSelectedCounty] = useState<string>("");
   const [selectedCountyName, setSelectedCountyName] = useState<string>("");
