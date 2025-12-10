@@ -55,10 +55,10 @@ async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise
 // --------------------------------------------
 // Freelancers API  uncommented
 // --------------------------------------------
-Django Model: FreelancerProfile
-Django Serializer: FreelancerProfileSerializer
-Django ViewSet: FreelancerProfileViewSet
-URL Pattern: /mygigs/freelancers/
+// Django Model: FreelancerProfile
+// Django Serializer: FreelancerProfileSerializer
+// Django ViewSet: FreelancerProfileViewSet
+// URL Pattern: /api/freelancers/
 
 export interface Freelancer {
   id: number;
@@ -159,34 +159,64 @@ export interface Freelancer {
  * ]
  */
 
-export async function fetchFreelancers(params: {
-  search?: string;
-  county?: string;
-  constituency?: string;
-  ward?: string;
-  profession?: string;
-  min_rate?: number;
-  max_rate?: number;
-  page?: number;
-  page_size?: number;
-}): Promise<{ results: Freelancer[]; count: number }> {
-  // Build query string
-  const queryParams = new URLSearchParams();
-  
-  if (params.search) queryParams.append('search', params.search);
-  if (params.county) queryParams.append('county', params.county);
-  if (params.constituency) queryParams.append('constituency', params.constituency);
-  if (params.ward) queryParams.append('ward', params.ward);
-  if (params.profession) queryParams.append('profession', params.profession);
-  if (params.min_rate) queryParams.append('min_rate', params.min_rate.toString());
-  if (params.max_rate) queryParams.append('max_rate', params.max_rate.toString());
-  if (params.page) queryParams.append('page', params.page.toString());
-  if (params.page_size) queryParams.append('page_size', params.page_size.toString());
 
-  return apiFetch<{ results: Freelancer[]; count: number }>(
-    `/freelancers/?${queryParams.toString()}`
+
+
+// export async function fetchFreelancers(params: {
+//   search?: string;
+//   county?: string;
+//   constituency?: string;
+//   ward?: string;
+//   profession?: string;
+//   min_rate?: number;
+//   max_rate?: number;
+//   page?: number;
+//   page_size?: number;
+// }): Promise<{ results: Freelancer[]; count: number }> {
+//   // Build query string
+//   const queryParams = new URLSearchParams();
+  
+//   if (params.search) queryParams.append('search', params.search);
+//   if (params.county) queryParams.append('county', params.county);
+//   if (params.constituency) queryParams.append('constituency', params.constituency);
+//   if (params.ward) queryParams.append('ward', params.ward);
+//   if (params.profession) queryParams.append('profession', params.profession);
+//   if (params.min_rate) queryParams.append('min_rate', params.min_rate.toString());
+//   if (params.max_rate) queryParams.append('max_rate', params.max_rate.toString());
+//   if (params.page) queryParams.append('page', params.page.toString());
+//   if (params.page_size) queryParams.append('page_size', params.page_size.toString());
+
+//   return apiFetch<{ results: Freelancer[]; count: number }>(
+//     `/freelancers/?${queryParams.toString()}`
+//   );
+// } 
+
+export const fetchFreelancersByProfession = async (
+  professionId: number,
+  filters: {
+    county?: string;
+    constituency?: string;
+    ward?: string;
+    min_rating?: number;
+    min_experience?: number;
+    search?: string;
+    page?: number;
+    page_size?: number;
+  }
+): Promise<{ results: Freelancer[]; count: number }> => {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== '') {
+      params.append(key, String(value));
+    }
+  });
+  
+  const response = await fetch(
+    `${API_BASE_URL}/professions/${professionId}/freelancers/?${params}`
   );
-}
+  if (!response.ok) throw new Error('Failed to fetch freelancers');
+  return response.json();
+};
 
 export async function fetchFeaturedFreelancers(): Promise<Freelancer[]> {
   // Django endpoint: /api/freelancers/?is_featured=true&page_size=4
@@ -194,8 +224,8 @@ export async function fetchFeaturedFreelancers(): Promise<Freelancer[]> {
 }
 
 export async function fetchFreelancerById(id: number): Promise<Freelancer> {
-  // Django endpoint: /api/freelancers/{id}/
-  return apiFetch<Freelancer>(`/freelancers/${id}/`);
+  // Django endpoint: /api/freelancer/{id}/
+  return apiFetch<Freelancer>(`/freelancer/${id}/`);
 }
 
 // --------------------------------------------
@@ -244,10 +274,15 @@ export interface Profession {
  *         return obj.get_freelancer_count()
  */
 
-export async function fetchProfessions(): Promise<Profession[]> {
-  // Django endpoint: /api/professions/
-  return apiFetch<Profession[]>('/professions/');
-}
+// export async function fetchProfessions(): Promise<Profession[]> {
+//   // Django endpoint: /api/professions/
+//   return apiFetch<Profession[]>('/professions/');
+// }
+export const fetchProfessions = async (): Promise<Profession[]> => {
+  const response = await fetch(`${API_BASE_URL}/professions/`);
+  if (!response.ok) throw new Error('Failed to fetch professions');
+  return response.json();
+};
 
 // --------------------------------------------
 // Reviews API

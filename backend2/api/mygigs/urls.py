@@ -11,7 +11,7 @@ router.register(
      ReviewViewSet,
      basename='freelancer-review'
  ) 
-router.register(r'profession', ProfessionViewSet, basename='profession')
+router.register(r'professions', ProfessionViewSet, basename='profession')
 router.register(r'job', JobViewSet, basename='job')
 router.register(r'testimonial', TestimonialViewSet, basename='testimonial')
 urlpatterns = [

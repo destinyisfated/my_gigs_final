@@ -5,12 +5,12 @@ from .models import Freelancer, Profession, Review, ReviewReply, Job, Testimonia
 # Register your models here.
 
 class ProfessionAdmin(admin.ModelAdmin):
-    list_display = ('name', 'image', 'description')
+    list_display = ('name','description', 'image_tag')
 admin.site.register(Profession, ProfessionAdmin)
 
 class FreelancerAdmin(admin.ModelAdmin):
-    list_display = ('name', 'title', 'county', 'constituency', 'ward', 'rating', 'hourly_rate', 'is_featured', 'created_at')
-    search_fields = ('name', 'title', 'county', 'constituency', 'ward')
+    list_display = ('name', 'phone', 'county', 'constituency', 'ward', 'rating', 'created_at', 'image_tag')
+    search_fields = ('name', 'phone', 'county', 'constituency', 'ward')
     list_filter = ('is_featured', 'created_at')
     ordering = ('-created_at',)
 admin.site.register(Freelancer, FreelancerAdmin)

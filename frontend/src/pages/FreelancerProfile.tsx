@@ -15,18 +15,60 @@ import {
   FileText,
 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
-// API imports - uncomment when ready to connect to Django backend
-// import { useState, useEffect } from "react";
-// import { fetchFreelancerById, type Freelancer } from "@/lib/api";
-
-// ============================================
-// MOCK DATA - Replace with Django API call
-// ============================================
-// DJANGO: Create endpoint GET /api/freelancers/{id}/
-// When ready, fetch freelancer data in useEffect and display dynamically
+import { useEffect, useState } from "react";
+import { useAuth } from "@clerk/clerk-react";
+import { fetchFreelancerById, type Freelancer } from "@/lib/api";
 
 const FreelancerProfile = () => {
   const { id } = useParams();
+  const { getToken } = useAuth();
+
+  const [token, setToken] = useState<string | null>(null);
+  const [freelancer, setFreelancer] = useState<Freelancer | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadFreelancer = async () => {
+      try {
+        const t = await getToken({ template: "default" });
+        setToken(t);
+
+        if (!id) return;
+
+        const data = await fetchFreelancerById(id!, t);
+        setFreelancer(data);
+      } catch (error) {
+        console.error("Failed to load freelancer:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadFreelancer();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-xl font-semibold">
+        Loading profile...
+      </div>
+    );
+  }
+
+  if (!freelancer) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-xl font-semibold">
+        Freelancer not found.
+      </div>
+    );
+  }
+
+  const initials = freelancer.name
+    ?.split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase();
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -40,7 +82,7 @@ const FreelancerProfile = () => {
                 {/* Avatar */}
                 <div className="flex-shrink-0">
                   <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white text-4xl font-bold">
-                    TA
+                    {initials}
                   </div>
                 </div>
 
@@ -49,25 +91,25 @@ const FreelancerProfile = () => {
                   <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-4">
                     <div>
                       <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-white">
-                        Team Allegiance
+                        {freelancer.name}
                       </h1>
                       <p className="text-xl text-gray-600 dark:text-gray-400 mb-3">
-                        Full Stack Web Developer
+                        {freelancer.profession?.name || "No profession specified"}
                       </p>
                       <div className="flex items-center gap-4 mb-3">
                         <div className="flex items-center">
                           <Star className="h-5 w-5 fill-yellow-500 text-yellow-500 mr-1" />
                           <span className="font-semibold text-lg text-gray-900 dark:text-white">
-                            4.9
+                            {freelancer.rating ?? 0}
                           </span>
                           <span className="text-gray-600 dark:text-gray-400 ml-1">
-                            (127 reviews)
+                            ({freelancer.review_count ?? 0} reviews)
                           </span>
                         </div>
                         <Separator orientation="vertical" className="h-6" />
                         <div className="flex items-center text-gray-600 dark:text-gray-400">
                           <MapPin className="h-4 w-4 mr-1" />
-                          Nairobi, Kenya
+                          {freelancer.county}, {freelancer.constituency}, {freelancer.ward}
                         </div>
                       </div>
                     </div>
@@ -98,12 +140,7 @@ const FreelancerProfile = () => {
                     About Me
                   </h2>
                   <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                    I'm a passionate full-stack web developer with over 5 years
-                    of experience building modern, scalable web applications. I
-                    specialize in React, Node.js, and TypeScript, and I love
-                    creating solutions that solve real-world problems. My goal
-                    is to deliver high-quality work that exceeds client
-                    expectations.
+                    {freelancer.bio || "No biography provided yet."}
                   </p>
                 </CardContent>
               </Card>
@@ -111,32 +148,17 @@ const FreelancerProfile = () => {
               {/* Skills */}
               <Card>
                 <CardContent className="pt-6">
-                  <h2 className="text-2xl font-bold mb-4">
-                    Skills & Expertise
-                  </h2>
+                  <h2 className="text-2xl font-bold mb-4">Skills & Expertise</h2>
                   <div className="flex flex-wrap gap-2">
-                    {[
-                      "React",
-                      "Node.js",
-                      "TypeScript",
-                      "Next.js",
-                      "PostgreSQL",
-                      "MongoDB",
-                      "REST APIs",
-                      "GraphQL",
-                      "AWS",
-                      "Docker",
-                      "Git",
-                      "Tailwind CSS",
-                    ].map((skill) => (
-                      <Badge
-                        key={skill}
-                        variant="secondary"
-                        className="text-sm"
-                      >
-                        {skill}
-                      </Badge>
-                    ))}
+                    {freelancer.skills?.length ? (
+                      freelancer.skills.map((skill: string) => (
+                        <Badge key={skill} variant="secondary" className="text-sm">
+                          {skill}
+                        </Badge>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No skills listed.</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -147,45 +169,44 @@ const FreelancerProfile = () => {
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-2xl font-bold">Client Reviews</h2>
                     <Button variant="hero" asChild>
-                      <Link to={`/freelancer/${id}/reviews`}>
-                        Leave a Review
-                      </Link>
+                      <Link to={`/freelancer/${id}/reviews`}>Leave a Review</Link>
                     </Button>
                   </div>
                   <div className="space-y-4">
-                    {[1, 2, 3].map((i) => (
-                      <div
-                        key={i}
-                        className="border-b last:border-0 pb-4 last:pb-0"
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-secondary to-accent flex items-center justify-center text-secondary-foreground font-semibold">
-                              C{i}
-                            </div>
-                            <div>
-                              <h4 className="font-semibold">Client Name {i}</h4>
-                              <div className="flex items-center gap-1">
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                  <Star
-                                    key={star}
-                                    className="h-3 w-3 fill-accent text-accent"
-                                  />
-                                ))}
+                    {freelancer.reviews?.length ? (
+                      freelancer.reviews.map((review) => (
+                        <div key={review.id} className="border-b pb-4 last:border-0">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center font-semibold">
+                                {review.client_name[0]}
+                              </div>
+                              <div>
+                                <h4 className="font-semibold">{review.client_name}</h4>
+                                <div className="flex items-center gap-1">
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                    <Star
+                                      key={star}
+                                      className={`h-3 w-3 ${
+                                        star <= review.rating
+                                          ? "fill-yellow-500 text-yellow-500"
+                                          : "fill-gray-300 text-gray-300"
+                                      }`}
+                                    />
+                                  ))}
+                                </div>
                               </div>
                             </div>
+                            <span className="text-sm text-muted-foreground">
+                              {review.created_at}
+                            </span>
                           </div>
-                          <span className="text-sm text-muted-foreground">
-                            {i} week ago
-                          </span>
+                          <p className="text-sm text-muted-foreground">{review.comment}</p>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          Excellent work! Very professional and delivered on
-                          time. Would definitely work with Sarah again. Highly
-                          recommended!
-                        </p>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No reviews yet.</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -196,54 +217,59 @@ const FreelancerProfile = () => {
               {/* Contact Info */}
               <Card>
                 <CardContent className="pt-6">
-                  <h3 className="font-bold text-lg mb-4">
-                    Contact Information
-                  </h3>
+                  <h3 className="font-bold text-lg mb-4">Contact Information</h3>
                   <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">team@gmail.com</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">+254 712 345 678</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">Nairobi, Kenya</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">Member since Jan 2024</span>
-                    </div>
+                    {freelancer.email && (
+                      <div className="flex items-center gap-3">
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">{freelancer.email}</span>
+                      </div>
+                    )}
+                    {freelancer.phone && (
+                      <div className="flex items-center gap-3">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">{freelancer.phone}</span>
+                      </div>
+                    )}
+                    {freelancer.location && (
+                      <div className="flex items-center gap-3">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">{freelancer.location}</span>
+                      </div>
+                    )}
+                    {freelancer.joined_at && (
+                      <div className="flex items-center gap-3">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">
+                          Member since {new Date(freelancer.joined_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
 
               {/* Certifications */}
-              <Card>
-                <CardContent className="pt-6">
-                  <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                    <Award className="h-5 w-5 text-primary" />
-                    Certifications
-                  </h3>
-                  <div className="space-y-3">
-                    {[
-                      "AWS Certified Developer",
-                      "Meta Frontend Developer",
-                      "Google UX Design",
-                    ].map((cert) => (
-                      <div
-                        key={cert}
-                        className="flex items-start gap-2 p-2 bg-muted/50 rounded-lg"
-                      >
-                        <FileText className="h-4 w-4 text-primary mt-0.5" />
-                        <span className="text-sm">{cert}</span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+              {freelancer.certifications?.length > 0 && (
+                <Card>
+                  <CardContent className="pt-6">
+                    <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                      <Award className="h-5 w-5 text-primary" /> Certifications
+                    </h3>
+                    <div className="space-y-3">
+                      {freelancer.certifications.map((cert) => (
+                        <div
+                          key={cert}
+                          className="flex items-start gap-2 p-2 bg-muted/50 rounded-lg"
+                        >
+                          <FileText className="h-4 w-4 text-primary mt-0.5" />
+                          <span className="text-sm">{cert}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
         </div>
