@@ -1,47 +1,14 @@
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from rest_framework import viewsets
-from .serializers import FreelancerListSerializer, JobSerializer, ProfessionSerializer, ReviewSerializer, ReviewReplySerializer, TestimonialSerializer, FreelancerDetailSerializer
+from .serializers import FreelancerListSerializer, JobSerializer, ProfessionSerializer, ReviewSerializer, ReviewReplySerializer, TestimonialSerializer, FreelancerDetailSerializer, FreelancerSerializer
 from rest_framework import filters
 from rest_framework.response import Response
+from rest_framework.views import APIView   
 from .models import Freelancer, Job, Review, Testimonial, Profession
 from rest_framework.decorators import action   
 
 # Create your views here.
-# class FreelancerViewSet(viewsets.ModelViewSet):
-#     queryset = Freelancer.objects.all()
-#     serializer_class = FreelancerSerializer
-#     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-#     search_fields = ['name', 'title', 'skills']
-#     ordering_fields = ['rating', 'hourly_rate', 'created_at']
-     
-#     def get_queryset(self):
-#         queryset = super().get_queryset()
-#           # Filter by location
-#         county = self.request.query_params.get('county')
-#         constituency = self.request.query_params.get('constituency')
-#         ward = self.request.query_params.get('ward')
-#          # Filter by profession
-#         profession = self.request.query_params.get('profession')
-#         # Filter by price range
-#         min_rate = self.request.query_params.get('min_rate')
-#         max_rate = self.request.query_params.get('max_rate')
-          
-#         if county:
-#             queryset = queryset.filter(county__name=county)
-#         if constituency:
-#             queryset = queryset.filter(constituency__name=constituency)
-#         if ward:
-#             queryset = queryset.filter(ward__name=ward)
-#         if profession:
-#             queryset = queryset.filter(title__icontains=profession)
-#         if min_rate:
-#             queryset = queryset.filter(hourly_rate__gte=min_rate)
-#         if max_rate:
-#             queryset = queryset.filter(hourly_rate__lte=max_rate)
-          
-#         return queryset
- 
-
+#
 class ProfessionViewSet(viewsets.ReadOnlyModelViewSet):
     """List and retrieve professions"""
     queryset = Profession.objects.filter(is_active=True)
@@ -131,6 +98,28 @@ class FreelancerViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = FreelancerListSerializer(featured, many=True)
         return Response(serializer.data)
 
+class FreelancerProfileUpdateView(APIView):
+    # authentication_classes = [ClerkAuthentication]
+    # permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        freelancer = get_or_create_freelancer(request.user)
+        serializer = FreelancerSerializer(freelancer)
+        return Response(serializer.data)
+
+    def put(self, request):
+        freelancer = get_or_create_freelancer(request.user)
+        serializer = FreelancerSerializer(
+            freelancer, 
+            data=request.data, 
+            partial=True
+        )
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+
+
 
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
@@ -139,6 +128,46 @@ class ReviewViewSet(viewsets.ModelViewSet):
         freelancer_id = self.kwargs.get('freelancer_id')
         return Review.objects.filter(freelancer_id=freelancer_id).order_by('-created_at')
     
+    # def create(self, request, *args, **kwargs):
+    #     freelancer_id = self.kwargs.get("freelancer_id")
+    #     freelancer = get_object_or_404(Freelancer, id=freelancer_id)
+    #     print("Creating review...")
+    #     client = request.user
+
+    #     # Compute initials
+    #     name_parts = client.username.split()
+    #     initials = "".join(part[0].upper() for part in name_parts)[:2]
+
+    #     data = {
+    #         "freelancer": freelancer.id,
+    #         "client": client.id,
+    #         "client_name": client.username,
+    #         "client_avatar": initials,
+    #         "rating": request.data.get("rating"),
+    #         "content": request.data.get("content"),
+    #     }
+
+    #     serializer = self.get_serializer(data=data)
+    #     serializer.is_valid(raise_exception=True)
+    #     serializer.save()
+
+    #     return Response(serializer.data, status=201)
+    def perform_create(self, serializer):
+        print("Creating review...")  # DEBUG
+        user = self.request.user
+        freelancer_id = self.kwargs.get('freelancer_id')
+
+        client_name = user.full_name or user.username
+        client_avatar = "".join([part[0].upper() for part in client_name.split()[:2]])
+
+        serializer.save(
+            freelancer_id=freelancer_id,
+            client=user,
+            client_name=client_name,
+            client_avatar=client_avatar,
+            helpful_count=0
+        )
+
     @action(detail=True, methods=['post'])
     def mark_helpful(self, request, pk=None):
         review = self.get_object()
@@ -147,23 +176,19 @@ class ReviewViewSet(viewsets.ModelViewSet):
         return Response({'helpful_count': review.helpful_count})
     
     @action(detail=True, methods=['post'])
-    def add_reply(self, request, pk=None):
+    def add_reply(self, request, pk=None, *args, **kwargs):
         review = self.get_object()
+
         serializer = ReviewReplySerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save(review=review)
-            return Response(serializer.data)
-        return Response(serializer.errors, status=400)
+        serializer.is_valid(raise_exception=True)
+
+        serializer.save(review=review)
+        return Response(serializer.data, status=201)
     
   
 class TestimonialViewSet(viewsets.ModelViewSet):
     queryset = Testimonial.objects.all()
     serializer_class = TestimonialSerializer
-
-# class ProfessionViewSet(viewsets.ReadOnlyModelViewSet):
-#     queryset = Profession.objects.all()
-#     serializer_class = ProfessionSerializer
-
 
 class JobViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Job.objects.all()

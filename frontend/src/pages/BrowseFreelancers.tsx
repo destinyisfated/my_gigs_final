@@ -587,7 +587,7 @@ const BrowseFreelancers = () => {
                                 </svg>
                               </div>
                             </div>
-                            <Link to={`/freelancer/${freelancer.id}`}>
+                            <Link to={`/freelancers/${freelancer.id}`}>
                               <h3 className="font-bold text-lg mb-1 text-gray-900 dark:text-white hover:text-orange-600 dark:hover:text-orange-400 transition-colors cursor-pointer">
                                 {freelancer.name}
                               </h3>

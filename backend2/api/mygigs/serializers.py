@@ -4,33 +4,6 @@ from rest_framework import serializers
 from .models import Freelancer, Job, Profession, Review, ReviewReply, Testimonial
 
 
-# class FreelancerSerializer(serializers.ModelSerializer):
-#       county = serializers.StringRelatedField()
-#       constituency = serializers.StringRelatedField()
-#       ward = serializers.StringRelatedField()
-      
-#       class Meta:
-#           model = Freelancer
-#           fields = '__all__'
-
-  
-# class ProfessionSerializer(serializers.ModelSerializer):
-#     image_url = serializers.SerializerMethodField()
-#     count = serializers.SerializerMethodField()
-    
-#     class Meta:
-#         model = Profession
-#         fields = ['id', 'name', 'image_url', 'count', 'description']
-    
-#     def get_image_url(self, obj):
-#         request = self.context.get('request')
-#         if obj.image and hasattr(obj.image, 'url'):
-#             return request.build_absolute_uri(obj.image.url)
-#         return None
-    
-#     def get_count(self, obj):
-#         return obj.get_freelancer_count()
-    
 class ProfessionSerializer(serializers.ModelSerializer):
     count = serializers.SerializerMethodField()
     imageUrl = serializers.SerializerMethodField()
@@ -48,6 +21,10 @@ class ProfessionSerializer(serializers.ModelSerializer):
             return request.build_absolute_uri(obj.image.url)
         return None
 
+class FreelancerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Freelancer
+        fields = "__all__"
 
 class FreelancerListSerializer(serializers.ModelSerializer):
     """Serializer for listing freelancers (lightweight)"""
@@ -86,14 +63,23 @@ class FreelancerDetailSerializer(serializers.ModelSerializer):
 class ReviewReplySerializer(serializers.ModelSerializer):
     class Meta:
         model = ReviewReply
-        fields = ['content', 'created_at']
- 
+        fields = "__all__"
+        read_only_fields = ("id", "review", "created_at")
 class ReviewSerializer(serializers.ModelSerializer):
     reply = ReviewReplySerializer(read_only=True)
     
     class Meta:
         model = Review
         fields = '__all__'
+        read_only_fields = (
+            "id",
+            "freelancer",
+            "client",
+            "client_name",
+            "client_avatar",
+            "helpful_count",
+            "created_at",
+        )
 
 class JobSerializer(serializers.ModelSerializer):
     posted = serializers.SerializerMethodField()

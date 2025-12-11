@@ -224,8 +224,8 @@ export async function fetchFeaturedFreelancers(): Promise<Freelancer[]> {
 }
 
 export async function fetchFreelancerById(id: number): Promise<Freelancer> {
-  // Django endpoint: /api/freelancer/{id}/
-  return apiFetch<Freelancer>(`/freelancer/${id}/`);
+  // Django endpoint: /api/freelancers/{id}/
+  return apiFetch<Freelancer>(`/freelancers/${id}/`);
 }
 
 // --------------------------------------------
