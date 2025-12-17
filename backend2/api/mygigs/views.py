@@ -9,6 +9,7 @@ from rest_framework.decorators import action, api_view, authentication_classes, 
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser  
 from users.authentication import ClerkAuthentication  
 from users.utils import get_or_create_freelancer
+from django.core.exceptions import ValidationError   
 
 # Create your views here.
 #
@@ -259,9 +260,12 @@ class TestimonialViewSet(viewsets.ModelViewSet):
     serializer_class = TestimonialSerializer
 
     def get_queryset(self):
+        user = self.request.user
         # Public users only see approved testimonials
         if self.request.user.is_staff:
             return Testimonial.objects.all().order_by("-created_at")
+        if self.action in ["update", "partial_update", "destroy"]:
+            return Testimonial.objects.filter(user=user)
         return Testimonial.objects.filter(is_approved=True).order_by("-created_at")
 
     def get_permissions(self):
@@ -270,6 +274,16 @@ class TestimonialViewSet(viewsets.ModelViewSet):
         elif self.action == "create":
             return [IsAuthenticated()]
         return [IsAdminUser()]
+    # def create(self, request, *args, **kwargs):
+    #     user = request.user
+
+    #     # 🚫 Rate-limit: only one testimonial per user
+    #     if Testimonial.objects.filter(name__iexact=user.get_full_name()).exists():
+    #         raise ValidationError({
+    #             "detail": "You have already submitted a testimonial."
+    #         })
+
+    #     return super().create(request, *args, **kwargs)
     
     def perform_create(self, serializer):
         user = self.request.user
@@ -278,6 +292,7 @@ class TestimonialViewSet(viewsets.ModelViewSet):
         avatar = "".join(part[0].upper() for part in name.split()[:2])
 
         serializer.save(
+            user=user,
             name=name,
             avatar=avatar,
             is_approved=False  # always require moderation

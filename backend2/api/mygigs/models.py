@@ -171,6 +171,12 @@ class Job(models.Model):
  
 
 class Testimonial(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        null=True,
+        related_name="testimonials"
+    )
     name = models.CharField(max_length=200)
     content = models.TextField()
     rating = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
@@ -195,4 +201,3 @@ class ReviewHelpful(models.Model):
 
     class Meta:
         unique_together = ("review", "user")
-

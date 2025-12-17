@@ -146,4 +146,10 @@ class TestimonialSerializer(serializers.ModelSerializer):
     class Meta:
         model = Testimonial
         fields = '__all__'
-        read_only_fields = ("is_approved", "created_at")
+        read_only_fields = (
+            "user",
+            "name",
+            "avatar",
+            "is_approved",
+            "created_at",
+        )
