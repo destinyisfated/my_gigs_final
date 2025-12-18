@@ -1,9 +1,10 @@
 from django.contrib import admin
 
-from .models import Freelancer, Profession, Review, ReviewReply, Job, Testimonial
+from .models import Freelancer, Profession, Review, ReviewReply, Job, Testimonial, MpesaTransaction
 
 # Register your models here.
 
+admin.site.register(MpesaTransaction)
 class ProfessionAdmin(admin.ModelAdmin):
     list_display = ('name','description', 'image_tag')
 admin.site.register(Profession, ProfessionAdmin)

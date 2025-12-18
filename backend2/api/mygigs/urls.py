@@ -2,6 +2,9 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_nested.routers import NestedDefaultRouter
 from .views import (
+    MpesaStatusAPIView,
+    MpesaCallbackAPIView,
+    MpesaSTKPushAPIView,
     whoami,
     FreelancerProfileUpdateView,
     FreelancerViewSet,
@@ -32,4 +35,7 @@ urlpatterns = [
     path("whoami/", whoami, name="whoami"),
     path("", include(router.urls)),
     path("", include(freelancer_router.urls)),
+    path("mpesa/stkpush/", MpesaSTKPushAPIView.as_view(), name="mpesa-stkpush"),
+    path("mpesa/callback/", MpesaCallbackAPIView.as_view(), name="mpesa-callback"),
+    path("mpesa/status/", MpesaStatusAPIView.as_view(), name="mpesa-status"),
 ]

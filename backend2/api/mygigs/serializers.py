@@ -1,7 +1,7 @@
 
 
 from rest_framework import serializers
-from .models import Freelancer, Job, Profession, Review, ReviewReply, Testimonial
+from .models import Freelancer, Job, Profession, Review, ReviewReply, Testimonial,MpesaTransaction
 
 
 class ProfessionSerializer(serializers.ModelSerializer):
@@ -153,3 +153,9 @@ class TestimonialSerializer(serializers.ModelSerializer):
             "is_approved",
             "created_at",
         )
+
+class MpesaTransactionSerializer(serializers.ModelSerializer):
+    """Serializer for the MpesaTransaction model."""
+    class Meta:
+        model = MpesaTransaction
+        fields = '__all__'
