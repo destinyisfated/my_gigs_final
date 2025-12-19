@@ -2,7 +2,6 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_nested.routers import NestedDefaultRouter
 from .views import (
-    MpesaStatusAPIView,
     MpesaCallbackAPIView,
     MpesaSTKPushAPIView,
     whoami,
@@ -12,6 +11,11 @@ from .views import (
     ReviewViewSet,
     JobViewSet,
     TestimonialViewSet,
+    MpesaSTKPushAPIView, 
+    MpesaCallbackAPIView, 
+    MpesaTransactionListAPIView, 
+    MpesaTransactionStatusAPIView, 
+    clerk_webhook_handler
 )
 
 router = DefaultRouter()
@@ -35,7 +39,10 @@ urlpatterns = [
     path("whoami/", whoami, name="whoami"),
     path("", include(router.urls)),
     path("", include(freelancer_router.urls)),
-    path("mpesa/stkpush/", MpesaSTKPushAPIView.as_view(), name="mpesa-stkpush"),
-    path("mpesa/callback/", MpesaCallbackAPIView.as_view(), name="mpesa-callback"),
-    path("mpesa/status/", MpesaStatusAPIView.as_view(), name="mpesa-status"),
+    path('stk-push/', MpesaSTKPushAPIView.as_view(), name='stk_push_request'),
+    path('callback/', MpesaCallbackAPIView.as_view(), name='mpesa_callback'),
+    path('transactions-api/', MpesaTransactionListAPIView.as_view(), name='transaction_list_api'),
+    # NEW: API endpoint for the frontend to check transaction status
+    path('check-status/<str:checkout_request_id>/', MpesaTransactionStatusAPIView.as_view(), name='transaction_status'),
+    path('clerk/', clerk_webhook_handler, name='clerk-webhook'),
 ]

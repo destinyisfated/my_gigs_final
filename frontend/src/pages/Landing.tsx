@@ -17,26 +17,8 @@ const Landing = () => {
     <div className="min-h-screen">
       <Navbar />
       <Hero />
-
-      {/* Featured Freelancers Section */}
-      <div className="my-10 container mx-auto px-4">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">Featured Freelancers</h2>
-          {/* Button to trigger Become Freelancer modal */}
-          <BecomeFreelancerButton onClick={() => setIsModalOpen(true)} />
-        </div>
-        <FeaturedFreelancers />
-      </div>
-
-      {/* Testimonials Section */}
+      <FeaturedFreelancers />
       <PlatformTestimonials />
-
-      {/* Become Freelancer Modal */}
-      <BecomeFreelancerModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-      />
-
       <Footer />
     </div>
   );

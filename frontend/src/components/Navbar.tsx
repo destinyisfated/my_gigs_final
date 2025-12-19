@@ -9,7 +9,8 @@ import {
   UserButton,
   useUser,
 } from "@clerk/clerk-react";
-import { useTheme } from "next-themes"; // ← This is the key
+import { useTheme } from "@/components/ThemeProvider"; // ← This is the key
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -65,6 +66,9 @@ export const Navbar = () => {
             >
               Browse Jobs
             </Link>
+            {/* <Button variant="outline" asChild>
+              <Link to="/sales/register">Become a Sales Agent</Link>
+            </Button> */}
 
             {/* Dashboard Link */}
             <SignedIn>
@@ -82,16 +86,7 @@ export const Navbar = () => {
           {/* Right Side: Theme Toggle + Auth */}
           <div className="hidden md:flex items-center gap-4">
             {/* Dark Mode Toggle */}
-            <button
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              aria-label="Toggle dark mode"
-            >
-              <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute inset-0 h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-              <span className="sr-only">Toggle theme</span>
-            </button>
-
+            <ThemeToggle />
             {/* Auth Buttons */}
             <SignedOut>
               <SignInButton mode="modal">

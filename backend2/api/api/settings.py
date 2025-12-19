@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,7 +27,9 @@ SECRET_KEY = 'django-insecure-ega$22lnj$@nkczt=%r=wxkit&an#8horzgiytd)az77p8ji*%
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '8528e6954044.ngrok-free.app']
+
+CSRF_TRUSTED_ORIGINS = ['http://localhost:3000', 'http://127.0.0.1:3000']
 
 
 # Application definition
@@ -143,3 +146,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CLERK_DOMAIN = "wired-ferret-99.clerk.accounts.dev"
 
+MPESA_CONFIG = {                                                              
+    'CONSUMER_KEY': config('MPESA_CONSUMER_KEY'),                            
+    'CONSUMER_SECRET': config('MPESA_CONSUMER_SECRET'),                      
+    'SHORTCODE': config('MPESA_SHORTCODE'),                                  
+    'PASSKEY': config('MPESA_PASSKEY'),                                      
+    'CALLBACK_URL': config('MPESA_CALLBACK_URL'),                            
+    'ENV': config('MPESA_ENV', default='sandbox'),                           
+}
