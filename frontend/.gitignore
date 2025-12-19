@@ -4,3 +4,6 @@ dist/
 .env
 *.log
 .DS_Store
+backend2/api/db.sqlite3
+__pycache__/
+*.pyc   
