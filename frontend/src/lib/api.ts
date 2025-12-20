@@ -16,7 +16,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
  * @param endpoint - API endpoint (e.g., '/freelancers/')
  * @param options - Fetch options (method, headers, body, etc.)
  */
-async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
   
   // Add default headers

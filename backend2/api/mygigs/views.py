@@ -1,10 +1,22 @@
 from django.shortcuts import get_object_or_404, render
 from users.models import ClerkProfile
 from rest_framework import viewsets,status, filters
-from .serializers import FreelancerListSerializer, JobSerializer, ProfessionSerializer, ReviewSerializer, ReviewReplySerializer, TestimonialSerializer, FreelancerDetailSerializer, FreelancerSerializer, MpesaTransactionSerializer
+from .serializers import (
+    FreelancerCreateSerializer,
+    FreelancerListSerializer, 
+    JobSerializer, 
+    ProfessionSerializer, 
+    ReviewSerializer, 
+    ReviewReplySerializer, 
+    TestimonialSerializer, 
+    FreelancerDetailSerializer,
+    FreelancerSerializer, 
+    MpesaTransactionSerializer,
+    FreelancerDocumentSerializer,
+)
 from rest_framework.response import Response
 from rest_framework.views import APIView   
-from .models import Freelancer, Job, Review, Testimonial, Profession, ReviewHelpful, MpesaTransaction, Freelancer
+from .models import Freelancer, Job, Review, Testimonial, Profession, ReviewHelpful, MpesaTransaction, FreelancerDocument
 from rest_framework.decorators import action, api_view, authentication_classes, permission_classes, parser_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser  
 from users.authentication import ClerkAuthentication  
@@ -22,6 +34,8 @@ from datetime import datetime
 import logging  
 from django.db import transaction
 import json  
+from rest_framework.parsers import MultiPartParser, FormParser
+from django.db import transaction as db_transaction
 
 
 # Create your views here.
@@ -67,7 +81,6 @@ class ProfessionViewSet(viewsets.ReadOnlyModelViewSet):
         page = self.paginate_queryset(freelancers)
         serializer = FreelancerListSerializer(page, many=True)
         return self.get_paginated_response(serializer.data)
-
 
 class FreelancerViewSet(viewsets.ReadOnlyModelViewSet):
     """List and retrieve freelancers"""
@@ -118,7 +131,30 @@ class FreelancerViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = FreelancerListSerializer(featured, many=True)
         return Response(serializer.data)
 
+class FreelancerDocumentViewSet(viewsets.ModelViewSet):
+    serializer_class = FreelancerDocumentSerializer
+    permission_classes = [IsAuthenticated]
+    queryset =FreelancerDocument.objects.all()
+    
+    @action(detail=False, methods=["get"])
+    def me(self, request):
+        freelancer = request.user.freelancer_profile
+        docs = FreelancerDocument.objects.filter(freelancer=freelancer)
+        serializer = self.get_serializer(docs, many=True)
+        return Response(serializer.data)
 
+    def get_queryset(self):
+        return FreelancerDocument.objects.filter(
+            freelancer__user=self.request.user
+        )
+
+    def perform_create(self, serializer):
+        try:
+            freelancer = self.request.user.freelancer_profile
+        except:
+            raise PermissionError("Freelancer profile not found")
+
+        serializer.save(freelancer=freelancer)
 class FreelancerProfileUpdateView(APIView):
     authentication_classes = [ClerkAuthentication]
     permission_classes = [IsAuthenticated]
@@ -192,6 +228,47 @@ class FreelancerProfileUpdateView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save(review=review)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+class FreelancerConversionViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+
+    @action(detail=False, methods=["post"])
+    def convert(self, request):
+        serializer = FreelancerCreateSerializer(
+            data=request.data,
+            context={"request": request}
+        )
+
+        serializer.is_valid(raise_exception=True)
+        freelancer = serializer.save()
+
+        return Response(
+            {
+                "message": "Freelancer profile created successfully",
+                "freelancer_id": freelancer.id,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+# class FreelancerDocumentUploadViewSet(viewsets.ViewSet):
+#     permission_classes = [IsAuthenticated]
+#     parser_classes = [MultiPartParser, FormParser]
+
+#     def create(self, request):
+#         user = request.user
+
+#         if not hasattr(user, "freelancer_profile"):
+#             return Response(
+#                 {"detail": "You must create a freelancer profile first."},
+#                 status=400,
+#             )
+
+#         serializer = FreelancerDocumentSerializer(data=request.data)
+#         serializer.is_valid(raise_exception=True)
+
+#         serializer.save(freelancer=user.freelancer_profile)
+
+#         return Response(serializer.data, status=201)
+
 
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
@@ -314,7 +391,13 @@ class TestimonialViewSet(viewsets.ModelViewSet):
             is_approved=False  # always require moderation
         )
 
-
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def me_reviews(request):
+    freelancer = request.user.freelancer_profile
+    reviews = Review.objects.filter(freelancer=freelancer)
+    serializer = ReviewSerializer(reviews, many=True)
+    return Response(serializer.data)
 class JobViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Job.objects.all()
     serializer_class = JobSerializer
@@ -473,11 +556,23 @@ class MpesaCallbackAPIView(APIView):
     authentication_classes = []  # ✅ Disable Clerk auth for this view
     permission_classes = [AllowAny]
     def post(self, request, *args, **kwargs):
+        print("🔥 M-PESA CALLBACK RECEIVED 🔥")
+        print(request.data)
         callback_data = request.data.get('Body', {}).get('stkCallback', {})
         merchant_request_id = callback_data.get('MerchantRequestID')
         checkout_request_id = callback_data.get('CheckoutRequestID')
         result_code = callback_data.get('ResultCode')
         result_desc = callback_data.get('ResultDesc')
+
+        try:
+            transaction = MpesaTransaction.objects.get(
+                merchant_request_id=merchant_request_id,
+                checkout_request_id=checkout_request_id
+            )
+        except MpesaTransaction.DoesNotExist:
+            print("Transaction not found:", merchant_request_id, checkout_request_id)
+            return Response({"ResultCode": 0, "ResultDesc": "Success"}, status=status.HTTP_200_OK)
+
         
         if result_code == 0:
             callback_metadata = callback_data.get('CallbackMetadata', {}).get('Item', [])
@@ -544,6 +639,78 @@ class MpesaCallbackAPIView(APIView):
                 print("Transaction record for failed request not found.")
 
         return Response({"ResultCode": 0, "ResultDesc": "Success"}, status=status.HTTP_200_OK)
+
+
+# class MpesaCallbackAPIView(APIView):
+#     authentication_classes = []  # Disable Clerk auth
+#     permission_classes = [AllowAny]
+
+#     def post(self, request, *args, **kwargs):
+#         print("🔥 M-PESA CALLBACK RECEIVED 🔥")
+#         print(request.data)
+#         callback_data = request.data.get('Body', {}).get('stkCallback', {})
+#         merchant_request_id = callback_data.get('MerchantRequestID')
+#         checkout_request_id = callback_data.get('CheckoutRequestID')
+#         result_code = callback_data.get('ResultCode')
+#         result_desc = callback_data.get('ResultDesc')
+
+#         try:
+#             transaction = MpesaTransaction.objects.get(
+#                 merchant_request_id=merchant_request_id,
+#                 checkout_request_id=checkout_request_id
+#             )
+#         except MpesaTransaction.DoesNotExist:
+#             print("Transaction not found:", merchant_request_id, checkout_request_id)
+#             return Response({"ResultCode": 0, "ResultDesc": "Success"}, status=status.HTTP_200_OK)
+
+#         if result_code == 0:
+#             # Successful payment
+#             callback_metadata = callback_data.get('CallbackMetadata', {}).get('Item', [])
+#             amount = mpesa_receipt_number = transaction_date = phone_number = None
+
+#             for item in callback_metadata:
+#                 if item['Name'] == 'Amount':
+#                     amount = item['Value']
+#                 elif item['Name'] == 'MpesaReceiptNumber':
+#                     mpesa_receipt_number = item['Value']
+#                 elif item['Name'] == 'TransactionDate':
+#                     transaction_date = datetime.strptime(str(item['Value']), '%Y%m%d%H%M%S')
+#                 elif item['Name'] == 'PhoneNumber':
+#                     phone_number = item['Value']
+
+#             # Update transaction info atomically
+#             with db_transaction.atomic():
+#                 transaction.result_code = result_code
+#                 transaction.result_desc = result_desc
+#                 transaction.amount = amount
+#                 transaction.mpesa_receipt_number = mpesa_receipt_number
+#                 transaction.transaction_date = transaction_date
+#                 transaction.phone_number = phone_number
+#                 transaction.save()
+
+#                 # Update ClerkProfile role if not already freelancer
+#                 if transaction.clerk_id:
+#                     try:
+#                         clerk_profile = ClerkProfile.objects.select_for_update().get(
+#                             clerk_id=transaction.clerk_id
+#                         )
+#                         if clerk_profile.role != "freelancer":
+#                             clerk_profile.role = "freelancer"
+#                             clerk_profile.save(update_fields=["role"])
+#                             print(f"Clerk role updated to freelancer: {clerk_profile.user.username}")
+#                     except ClerkProfile.DoesNotExist:
+#                         print("ClerkProfile not found for clerk_id:", transaction.clerk_id)
+
+#             print(f"Transaction {mpesa_receipt_number} processed successfully")
+
+#         else:
+#             # Payment failed
+#             transaction.result_code = result_code
+#             transaction.result_desc = result_desc
+#             transaction.save()
+#             print(f"Transaction failed: {result_code} - {result_desc}")
+
+#         return Response({"ResultCode": 0, "ResultDesc": "Success"}, status=status.HTTP_200_OK)
 
 
 class MpesaTransactionListAPIView(ListAPIView):
@@ -669,3 +836,16 @@ def update_clerk_role_to_freelancer(clerk_id):
         json=data
     )
     print(f"Clerk API response: {resp.status_code} {resp.text}")
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def me(request):
+    user = request.user
+
+    return Response({
+        "id": user.id,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "email": user.email,
+        "is_freelancer": hasattr(user, "freelancer_profile"),
+    })

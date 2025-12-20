@@ -73,8 +73,7 @@ class Profession(models.Model):
      def image_tag(self):
         return mark_safe('<img src="%s" width="80" />'% (self.image.url))
         
- 
- 
+
 class Freelancer(models.Model):
      """Freelancer profile with all details"""
      user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='freelancer_profile', null=True)
@@ -125,8 +124,6 @@ class Freelancer(models.Model):
      def image_tag(self):
         return mark_safe('<img src="%s" width="80" />'% (self.avatar.url))
  
- 
-
 class Review(models.Model):
     freelancer = models.ForeignKey('Freelancer', on_delete=models.CASCADE, related_name='review')
     client = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -229,3 +226,31 @@ class MpesaTransaction(models.Model):
     
     def __str__(self):
         return f"Transaction {self.mpesa_receipt_number or self.merchant_request_id}" 
+
+
+class FreelancerDocument(models.Model):
+    DOCUMENT_TYPES = (
+        ("id", "National ID"),
+        ("certificate", "Certificate"),
+        ("portfolio", "Portfolio"),
+        ("other", "Other"),
+    )
+
+    freelancer = models.ForeignKey(
+        "Freelancer",
+        on_delete=models.CASCADE,
+        related_name="documents"
+    )
+    file = models.FileField(upload_to="freelancer_documents/")
+    document_type = models.CharField(
+        max_length=20,
+        choices=DOCUMENT_TYPES,
+        default="other"
+    )
+    title = models.CharField(max_length=255, blank=True)
+    is_verified = models.BooleanField(default=False)
+
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.freelancer.name} - {self.document_type}"

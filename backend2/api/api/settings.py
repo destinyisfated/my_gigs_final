@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-ega$22lnj$@nkczt=%r=wxkit&an#8horzgiytd)az77p8ji*%
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '8528e6954044.ngrok-free.app']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'd2e37d3788a7.ngrok-free.app']
 
 CSRF_TRUSTED_ORIGINS = ['http://localhost:3000', 'http://127.0.0.1:3000']
 
@@ -46,6 +46,8 @@ INSTALLED_APPS = [
     'mygigs',
     'users',
     'corsheaders',
+    # 'cloudinary',
+    # 'cloudinary_storage',
 ]
 
 MIDDLEWARE = [
@@ -139,6 +141,13 @@ STATIC_URL = 'static/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / "media"
 
+# DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
+
+# CLOUDINARY_STORAGE = {
+#     "CLOUD_NAME": env("CLOUDINARY_CLOUD_NAME"),
+#     "API_KEY": env("CLOUDINARY_API_KEY"),
+#     "API_SECRET": env("CLOUDINARY_API_SECRET"),
+# }
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 

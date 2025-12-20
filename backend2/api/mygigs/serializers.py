@@ -1,8 +1,10 @@
 
 
 from rest_framework import serializers
-from .models import Freelancer, Job, Profession, Review, ReviewReply, Testimonial,MpesaTransaction
-
+from .models import Freelancer, Job, Profession, Review, ReviewReply, Testimonial,MpesaTransaction, FreelancerDocument
+from rest_framework import serializers
+from django.contrib.auth.models import User
+from users.models import ClerkProfile
 
 class ProfessionSerializer(serializers.ModelSerializer):
     count = serializers.SerializerMethodField()
@@ -21,15 +23,53 @@ class ProfessionSerializer(serializers.ModelSerializer):
             return request.build_absolute_uri(obj.image.url)
         return None
 
-# class FreelancerSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = Freelancer
-#         fields = "__all__"
+class FreelancerCreateSerializer(serializers.ModelSerializer):
+    profession = serializers.PrimaryKeyRelatedField(
+        queryset=Profession.objects.all()
+    )
+    class Meta:
+        model = Freelancer
+        fields = [
+            "profession",
+            "name",
+            "email",
+            "phone",
+            "bio",
+            "county",
+            "constituency",
+            "ward",
+            "hourly_rate",
+            "years_experience",
+            "availability",
+            "skills",
+        ]
 
-from rest_framework import serializers
-from django.contrib.auth.models import User
-from .models import Freelancer, Profession
-from users.models import ClerkProfile
+    def validate(self, attrs):
+        user = self.context["request"].user
+
+        if hasattr(user, "freelancer_profile"):
+            raise serializers.ValidationError(
+                "You already have a freelancer profile."
+            )
+        return attrs
+
+    def create(self, validated_data):
+        user = self.context["request"].user
+        validated_data.setdefault("email", user.email)
+        return Freelancer.objects.create(
+            user=user,
+            is_active=True,
+            **validated_data
+        )
+
+
+
+class FreelancerDocumentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FreelancerDocument
+        fields = ["id", "file", "name", "document_type", "is_verified", "uploaded_at"]
+        read_only_fields = ["is_verified"]
+
 
 class FreelancerSerializer(serializers.ModelSerializer):
     # Nested fields for User
