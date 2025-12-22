@@ -83,7 +83,8 @@ class Freelancer(models.Model):
      name = models.CharField(max_length=255)
      email = models.EmailField(unique=True, null=True)
      phone = models.CharField(max_length=20, blank=True)
-     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
+    #  avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
+     avatar= models.CharField(max_length=5, blank=True, null=True)
      bio = models.TextField(blank=True)
      
      # Location - hierarchical (County > Constituency > Ward)
@@ -121,8 +122,8 @@ class Freelancer(models.Model):
      
      def __str__(self):
          return f"{self.name} - {self.profession.name if self.profession else 'No Profession'}"
-     def image_tag(self):
-        return mark_safe('<img src="%s" width="80" />'% (self.avatar.url))
+    #  def image_tag(self):
+    #     return mark_safe('<img src="%s" width="80" />'% (self.avatar.url))
  
 class Review(models.Model):
     freelancer = models.ForeignKey('Freelancer', on_delete=models.CASCADE, related_name='review')
