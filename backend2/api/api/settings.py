@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-ega$22lnj$@nkczt=%r=wxkit&an#8horzgiytd)az77p8ji*%
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'd2e37d3788a7.ngrok-free.app']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'bb7a82485ccb.ngrok-free.app']
 
 CSRF_TRUSTED_ORIGINS = ['http://localhost:3000', 'http://127.0.0.1:3000']
 
@@ -161,5 +161,7 @@ MPESA_CONFIG = {
     'SHORTCODE': config('MPESA_SHORTCODE'),                                  
     'PASSKEY': config('MPESA_PASSKEY'),                                      
     'CALLBACK_URL': config('MPESA_CALLBACK_URL'),                            
-    'ENV': config('MPESA_ENV', default='sandbox'),                           
+    'ENV': config('MPESA_ENV', default='sandbox'),  
+    'CLERK_WEBHOOK_SECRET': config('CLERK_WEBHOOK_SECRET'),   
+    'CLERK_SECRET_KEY': config('CLERK_SECRET_KEY'),                     
 }

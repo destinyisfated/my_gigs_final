@@ -15,6 +15,7 @@ from .serializers import (
     FreelancerDocumentSerializer,
 )
 from rest_framework.response import Response
+from django.http import HttpResponse
 from rest_framework.views import APIView   
 from .models import Freelancer, Job, Review, Testimonial, Profession, ReviewHelpful, MpesaTransaction, FreelancerDocument
 from rest_framework.decorators import action, api_view, authentication_classes, permission_classes, parser_classes
@@ -816,7 +817,7 @@ def clerk_webhook_handler(request):
 
 
 def update_clerk_role_to_freelancer(clerk_id):
-    CLERK_API_KEY = settings.CLERK_SECRET_KEY
+    CLERK_API_KEY = settings.MPESA_CONFIG['CLERK_SECRET_KEY']   
     if not CLERK_API_KEY:
         print("CLERK_SECRET_KEY not set in environment.")
         return
@@ -849,3 +850,54 @@ def me(request):
         "email": user.email,
         "is_freelancer": hasattr(user, "freelancer_profile"),
     })
+
+class AdminOverviewView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        from django.db.models import Sum, Count
+
+        return Response({
+            'total_sales_people': SalesPerson.objects.filter(is_active=True).count(),
+            'total_referrals': Referral.objects.count(),
+            'pending_referrals': Referral.objects.filter(status='pending').count(),
+            'approved_referrals': Referral.objects.filter(status='approved').count(),
+            'confirmed_referrals': Referral.objects.filter(status='confirmed').count(),
+            'total_revenue': Referral.objects.filter(status='confirmed').aggregate(
+                total=Sum('payment_amount'))['total'] or 0,
+            'total_commissions': Referral.objects.filter(status='confirmed').aggregate(
+                total=Sum('commission_earned'))['total'] or 0,
+        })
+
+class SalesPersonListView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        sales_people = SalesPerson.objects.all().order_by('-created_at')
+        return Response(SalesPersonSerializer(sales_people, many=True).data)
+
+class ToggleSalesPersonStatusView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def post(self, request, pk):
+        try:
+            sales_person = SalesPerson.objects.get(pk=pk)
+            sales_person.is_active = not sales_person.is_active
+            sales_person.save()
+
+            # Optionally update Clerk user metadata
+            clerk = Clerk(bearer_auth=os.environ.get('CLERK_SECRET_KEY'))
+            clerk.users.update(
+                user_id=sales_person.clerk_user_id,
+                public_metadata={'is_active': sales_person.is_active}
+            )
+
+            return Response({'is_active': sales_person.is_active})
+        except SalesPerson.DoesNotExist:
+            return Response({'error': 'Not found'}, status=404)
+class LeaderboardView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        sales_people = SalesPerson.objects.filter(is_active=True).order_by('-total_earnings')[:10]
+        return Response(SalesPersonSerializer(sales_people, many=True).data)

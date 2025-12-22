@@ -9,34 +9,41 @@ import {
   UserButton,
   useUser,
 } from "@clerk/clerk-react";
-import { useTheme } from "@/components/ThemeProvider"; // ← This is the key
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { useTheme } from "next-themes";
 
 export const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user } = useUser();
-  const { theme, setTheme } = useTheme(); // ← Get current theme & toggle function
+  const { theme, setTheme } = useTheme();
 
   const userRole = user?.publicMetadata?.role as
     | "admin"
     | "freelancer"
     | "client"
+    | "sales"
     | undefined;
 
-  const getDashboardLink = () => {
+  const getDashboardLinks = () => {
+    if (userRole === "admin") {
+      return [
+        { label: "Admin Dashboard", to: "/dashboard/admin" },
+        { label: "Admin Referrals", to: "/dashboard/admin/referrals" },
+      ];
+    }
+
     switch (userRole) {
-      case "admin":
-        return { label: "Admin Dashboard", to: "/dashboard/admin" };
       case "freelancer":
-        return { label: "Freelancer Dashboard", to: "/dashboard/freelancer" };
+        return [{ label: "Freelancer Dashboard", to: "/dashboard/freelancer" }];
       case "client":
-        return { label: "Client Dashboard", to: "/dashboard/client" };
+        return [{ label: "Client Dashboard", to: "/dashboard/client" }];
+      case "sales":
+        return [{ label: "Sales Dashboard", to: "/dashboard/sales" }];
       default:
-        return null;
+        return [];
     }
   };
 
-  const dashboard = getDashboardLink();
+  const dashboardLinks = getDashboardLinks();
 
   return (
     <nav className="sticky top-0 z-50 bg-white/95 dark:bg-gray-950/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-gray-950/80 border-b border-gray-200 dark:border-gray-800">
@@ -60,33 +67,34 @@ export const Navbar = () => {
             >
               Find Freelancers
             </Link>
-            <Link
-              to="/jobs"
-              className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-            >
-              Browse Jobs
-            </Link>
-            {/* <Button variant="outline" asChild>
-              <Link to="/sales/register">Become a Sales Agent</Link>
-            </Button> */}
 
-            {/* Dashboard Link */}
+            {/* Dashboard Links - Now supports multiple for admin */}
             <SignedIn>
-              {dashboard && (
+              {dashboardLinks.map((link) => (
                 <Link
-                  to={dashboard.to}
+                  key={link.to}
+                  to={link.to}
                   className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-medium transition-colors"
                 >
-                  {dashboard.label}
+                  {link.label}
                 </Link>
-              )}
+              ))}
             </SignedIn>
           </div>
 
           {/* Right Side: Theme Toggle + Auth */}
           <div className="hidden md:flex items-center gap-4">
             {/* Dark Mode Toggle */}
-            <ThemeToggle />
+            <button
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              aria-label="Toggle dark mode"
+            >
+              <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+              <Moon className="absolute inset-0 h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+              <span className="sr-only">Toggle theme</span>
+            </button>
+
             {/* Auth Buttons */}
             <SignedOut>
               <SignInButton mode="modal">
@@ -121,24 +129,19 @@ export const Navbar = () => {
             >
               Find Freelancers
             </Link>
-            <Link
-              to="/jobs"
-              className="block py-2 text-gray-700 dark:text-gray-300"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Browse Jobs
-            </Link>
 
+            {/* Mobile: Show all dashboard links (Admin gets 2) */}
             <SignedIn>
-              {dashboard && (
+              {dashboardLinks.map((link) => (
                 <Link
-                  to={dashboard.to}
+                  key={link.to}
+                  to={link.to}
                   className="block py-2 font-medium text-gray-700 dark:text-gray-300"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  {dashboard.label}
+                  {link.label}
                 </Link>
-              )}
+              ))}
             </SignedIn>
 
             {/* Mobile Theme Toggle */}
@@ -169,14 +172,17 @@ export const Navbar = () => {
               </SignedOut>
 
               <SignedIn>
-                <Button variant="outline" asChild className="w-full">
-                  <Link
-                    to={dashboard?.to || "#"}
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Go to Dashboard
-                  </Link>
-                </Button>
+                {/* In mobile, show first dashboard as main button */}
+                {dashboardLinks.length > 0 && (
+                  <Button variant="outline" asChild className="w-full">
+                    <Link
+                      to={dashboardLinks[0].to}
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      {dashboardLinks[0].label}
+                    </Link>
+                  </Button>
+                )}
               </SignedIn>
             </div>
           </div>

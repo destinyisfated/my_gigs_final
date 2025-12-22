@@ -17,6 +17,8 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import CreateFreelancerProfile from "./pages/CreateFreelancerProfile";
 import ReferralConfirmation from "./pages/ReferralConfirmation";
 import SalesRegistration from "./pages/SalesRegistration";
+import AdminReferrals from "./pages/AdminReferrals";
+import SalesDashboard from "./pages/SalesDashboard";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +58,11 @@ const App = () => (
               path="/freelancer/referral-confirmation"
               element={<ReferralConfirmation />}
             />
+            <Route
+              path="/dashboard/admin/referrals"
+              element={<AdminReferrals />}
+            />
+            <Route path="/dashboard/sales" element={<SalesDashboard />} />
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
