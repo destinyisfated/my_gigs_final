@@ -58,7 +58,7 @@ export interface Freelancer {
   constituency: string;     // Foreign key to Constituency model
   ward: string;            // Foreign key to Ward model
   rating: number;
-  reviews: number;
+  review_count: number;
   completed_jobs: number;
   skills: string[];        // JSONField or ManyToMany relationship
   avatar: string;          // Could be avatar initials or image URL
@@ -68,6 +68,16 @@ export interface Freelancer {
   created_at: string;
   updated_at: string;
 }
+
+export type FeaturedFreelancer = {
+  id: number;
+  name: string;
+  title: string;
+  location: string;
+  rating: number;
+  reviews: number;
+  avatar: string;
+};
 
 
 export const fetchFreelancersByProfession = async (
@@ -97,9 +107,36 @@ export const fetchFreelancersByProfession = async (
   return response.json();
 };
 
-export async function fetchFeaturedFreelancers(): Promise<Freelancer[]> {
-  // Django endpoint: /api/freelancers/?is_featured=true&page_size=4
-  return apiFetch<Freelancer[]>('/freelancers/?is_featured=true&page_size=4');
+// export async function fetchFeaturedFreelancers(): Promise<Freelancer[]> {
+//   // Django endpoint: /api/freelancers/?is_featured=true&page_size=4
+//   return apiFetch<Freelancer[]>('/freelancers/?is_featured=true&page_size=4');
+// }
+export async function fetchFeaturedFreelancers(): Promise<FeaturedFreelancer[]> {
+  const res = await fetch(
+    `${import.meta.env.VITE_API_BASE_URL}/freelancers/featured`
+  );
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch featured freelancers");
+  }
+
+  const data = await res.json();
+
+  const results = Array.isArray(data) ? data : data.results ?? [];
+
+  return results.map((f: any) => ({
+    id: f.id,
+    name: f.name,
+    title: f.profession_name ?? "Freelancer",
+    location: `${f.county ?? "Kenya"}`,
+    rating: Number(f.rating ?? 0),
+    reviews: Number(f.reviews_count ?? 0),
+    avatar: f.name
+      ?.split(" ")
+      .slice(0, 2)
+      .map((p: string) => p[0].toUpperCase())
+      .join("") ?? "FL",
+  }));
 }
 
 export async function fetchFreelancerById(id: number): Promise<Freelancer> {
@@ -123,6 +160,15 @@ export const fetchProfessions = async (): Promise<Profession[]> => {
   return response.json();
 };
 
+export async function fetchFreelancerProfile(token?: string): Promise<Freelancer> {
+  if (!token) throw new Error("No auth token found");
+
+  return apiFetch<Freelancer>('/freelancers/me/', {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
 // --------------------------------------------
 // Reviews API
 // --------------------------------------------

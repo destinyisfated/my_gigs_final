@@ -1,4 +1,5 @@
 from django.shortcuts import get_object_or_404, render
+from django.db.models import Avg, Count
 from users.models import ClerkProfile
 from rest_framework import viewsets,status, filters
 from .serializers import (
@@ -85,8 +86,16 @@ class ProfessionViewSet(viewsets.ReadOnlyModelViewSet):
 
 class FreelancerViewSet(viewsets.ReadOnlyModelViewSet):
     """List and retrieve freelancers"""
-    queryset = Freelancer.objects.filter(is_active=True).select_related('profession')
-    
+    # queryset = Freelancer.objects.filter(is_active=True).select_related('profession')
+    queryset = (
+        Freelancer.objects
+        .filter(is_active=True)
+        .select_related("profession")
+        .annotate(
+            avg_rating=Avg("review__rating"),
+            total_review=Count("review")
+        )
+    )
     def get_serializer_class(self):
         if self.action == 'retrieve':
             return FreelancerDetailSerializer
@@ -135,27 +144,21 @@ class FreelancerViewSet(viewsets.ReadOnlyModelViewSet):
 class FreelancerDocumentViewSet(viewsets.ModelViewSet):
     serializer_class = FreelancerDocumentSerializer
     permission_classes = [IsAuthenticated]
-    queryset =FreelancerDocument.objects.all()
-    
-    @action(detail=False, methods=["get"])
-    def me(self, request):
-        freelancer = request.user.freelancer_profile
-        docs = FreelancerDocument.objects.filter(freelancer=freelancer)
-        serializer = self.get_serializer(docs, many=True)
-        return Response(serializer.data)
+    parser_classes = [MultiPartParser, FormParser]
 
     def get_queryset(self):
-        return FreelancerDocument.objects.filter(
-            freelancer__user=self.request.user
-        )
+        """
+        Only return documents belonging to the logged-in freelancer
+        """
+        return FreelancerDocument.objects.filter(freelancer__user=self.request.user)
 
     def perform_create(self, serializer):
-        try:
-            freelancer = self.request.user.freelancer_profile
-        except:
-            raise PermissionError("Freelancer profile not found")
-
+        """
+        Automatically attach document to the logged-in freelancer
+        """
+        freelancer = Freelancer.objects.get(user=self.request.user)
         serializer.save(freelancer=freelancer)
+
 class FreelancerProfileUpdateView(APIView):
     authentication_classes = [ClerkAuthentication]
     permission_classes = [IsAuthenticated]

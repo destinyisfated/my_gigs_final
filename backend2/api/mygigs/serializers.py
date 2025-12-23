@@ -67,8 +67,10 @@ class FreelancerCreateSerializer(serializers.ModelSerializer):
 class FreelancerDocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = FreelancerDocument
-        fields = ["id", "file", "name", "document_type", "is_verified", "uploaded_at"]
-        read_only_fields = ["is_verified"]
+        fields = ["id", "file", "document_type", "title","is_verified", "uploaded_at"]
+        read_only_fields = ["id","is_verified", "uploaded_at"]
+
+   
 
 
 class FreelancerSerializer(serializers.ModelSerializer):
@@ -109,7 +111,8 @@ class FreelancerListSerializer(serializers.ModelSerializer):
     """Serializer for listing freelancers (lightweight)"""
     profession_name = serializers.CharField(source='profession.name', read_only=True)
     avatar_initials = serializers.SerializerMethodField()
-    
+    rating = serializers.FloatField(read_only=True)
+    review_count = serializers.IntegerField(read_only=True)
     class Meta:
         model = Freelancer
         fields = [
@@ -123,6 +126,16 @@ class FreelancerListSerializer(serializers.ModelSerializer):
         if len(parts) >= 2:
             return f"{parts[0][0]}{parts[1][0]}".upper()
         return obj.name[:2].upper()
+
+    def get_rating(self, obj):
+        """
+        Returns average rating:
+        - 0.0 if no reviews
+        - Rounded to 1 decimal
+        """
+        if obj.avg_rating is None:
+            return 0.0
+        return round(float(obj.avg_rating) or 0.0, 1)
 
 
 class FreelancerDetailSerializer(serializers.ModelSerializer):

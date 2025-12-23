@@ -210,7 +210,7 @@ export const PlatformTestimonials = () => {
               onSubmit={handleSubmitReview}
               title={
                 userTestimonial
-                  ? "Edit Your Testimonial"
+                  ? "Thankkyou for sharing your experience"
                   : "Share Your Experience"
               }
             />

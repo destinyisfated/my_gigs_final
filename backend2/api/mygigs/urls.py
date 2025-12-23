@@ -60,7 +60,7 @@ urlpatterns = [
     path('check-status/<str:checkout_request_id>/', MpesaTransactionStatusAPIView.as_view(), name='transaction_status'),
     path('clerk/', clerk_webhook_handler, name='clerk-webhook'),
     path('me/',me, name="me"),
-        path('admin-overview/', AdminOverviewView.as_view(), name='admin-overview'),  # Added
+    path('admin-overview/', AdminOverviewView.as_view(), name='admin-overview'),  # Added
 
     
 ]

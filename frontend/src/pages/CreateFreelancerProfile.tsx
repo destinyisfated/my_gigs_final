@@ -14,7 +14,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -28,29 +27,30 @@ import {
   Briefcase,
   MapPin,
   X,
-  Plus,
-  CheckCircle,
   ArrowRight,
   FileText,
-  Sparkles,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { LocationSelect } from "@/components/LocationSelect";
-import {
-  DocumentUpload,
-  type UploadedDocument,
-} from "@/components/DocumentUpload";
+import { FreelancerDocumentsModal } from "@/components/FreelancerDocumentsModal";
 
 type Profession = {
   id: number;
   name: string;
 };
 
+const AVAILABILITY_OPTIONS = [
+  { value: "available", label: "Available" },
+  { value: "busy", label: "Busy" },
+  { value: "unavailable", label: "Unavailable" },
+];
+
 const CreateFreelancerProfile = () => {
   const navigate = useNavigate();
   const { getToken } = useAuth();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDocsModal, setShowDocsModal] = useState(false);
 
   /* professions */
   const [professions, setProfessions] = useState<Profession[]>([]);
@@ -65,9 +65,6 @@ const CreateFreelancerProfile = () => {
   const [constituency, setConstituency] = useState("");
   const [ward, setWard] = useState("");
 
-  /* documents */
-  const [documents, setDocuments] = useState<UploadedDocument[]>([]);
-
   /* form */
   const [formData, setFormData] = useState({
     firstName: "",
@@ -78,7 +75,7 @@ const CreateFreelancerProfile = () => {
     profession: "",
     hourlyRate: "",
     yearsExperience: "",
-    availability: "",
+    availability: "available",
   });
 
   const handleChange = (field: string, value: string) => {
@@ -86,45 +83,27 @@ const CreateFreelancerProfile = () => {
   };
 
   /* load professions */
-  /* load professions */
-useEffect(() => {
-  const loadProfessions = async () => {
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/professions/`
-      );
-
-      if (!res.ok) {
-        throw new Error("Failed to fetch professions");
+  useEffect(() => {
+    const loadProfessions = async () => {
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/professions/`
+        );
+        const data = await res.json();
+        setProfessions(Array.isArray(data) ? data : data.results ?? []);
+      } catch {
+        toast({
+          title: "Error",
+          description: "Failed to load professions",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingProfessions(false);
       }
+    };
 
-      const data = await res.json();
-
-      /**
-       * DRF pagination safe:
-       * - If pagination is enabled → data.results
-       * - If pagination is disabled → data (array)
-       */
-      const professionsArray = Array.isArray(data)
-        ? data
-        : data.results ?? [];
-
-      setProfessions(professionsArray);
-    } catch (error) {
-      console.error("Profession load error:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load professions",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingProfessions(false);
-    }
-  };
-
-  loadProfessions();
-}, []);
-
+    loadProfessions();
+  }, []);
 
   const addSkill = () => {
     const s = currentSkill.trim();
@@ -138,29 +117,6 @@ useEffect(() => {
     setSkills(skills.filter((s) => s !== skill));
   };
 
-  /* upload documents */
-  const uploadDocuments = async (token: string) => {
-    for (const doc of documents) {
-      const form = new FormData();
-      form.append("file", doc.file);
-      form.append("document_type", doc.type || "other");
-      form.append("title", doc.name || "");
-
-      const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/freelancer-documents/`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: form,
-        }
-      );
-
-      if (!res.ok) throw new Error("Document upload failed");
-    }
-  };
-
   /* submit */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -170,7 +126,6 @@ useEffect(() => {
       const token = await getToken();
       if (!token) throw new Error("Unauthenticated");
 
-      /* create freelancer */
       const payload = {
         profession: Number(formData.profession),
         name: `${formData.firstName} ${formData.lastName}`,
@@ -198,11 +153,7 @@ useEffect(() => {
         }
       );
 
-      const data = await res.json();
-      if (!res.ok) throw data;
-
-      /* upload documents */
-      await uploadDocuments(token);
+      if (!res.ok) throw await res.json();
 
       toast({
         title: "Profile Created",
@@ -214,9 +165,7 @@ useEffect(() => {
       toast({
         title: "Creation failed",
         description:
-          err?.non_field_errors?.[0] ||
-          err?.detail ||
-          "Something went wrong",
+          err?.detail || err?.non_field_errors?.[0] || "Something went wrong",
         variant: "destructive",
       });
     } finally {
@@ -231,6 +180,7 @@ useEffect(() => {
       <main className="flex-1">
         <div className="container mx-auto px-4 py-12 max-w-3xl">
           <form onSubmit={handleSubmit} className="space-y-8">
+
             {/* PERSONAL */}
             <Card>
               <CardHeader>
@@ -241,21 +191,13 @@ useEffect(() => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <Input
-                    placeholder="First name"
+                  <Input placeholder="First name" required
                     value={formData.firstName}
-                    onChange={(e) =>
-                      handleChange("firstName", e.target.value)
-                    }
-                    required
+                    onChange={(e) => handleChange("firstName", e.target.value)}
                   />
-                  <Input
-                    placeholder="Last name"
+                  <Input placeholder="Last name" required
                     value={formData.lastName}
-                    onChange={(e) =>
-                      handleChange("lastName", e.target.value)
-                    }
-                    required
+                    onChange={(e) => handleChange("lastName", e.target.value)}
                   />
                 </div>
 
@@ -267,18 +209,13 @@ useEffect(() => {
                 />
 
                 <div className="grid grid-cols-2 gap-4">
-                  <Input
-                    type="email"
-                    placeholder="Email"
+                  <Input type="email" placeholder="Email" required
                     value={formData.email}
                     onChange={(e) => handleChange("email", e.target.value)}
-                    required
                   />
-                  <Input
-                    placeholder="Phone"
+                  <Input placeholder="Phone" required
                     value={formData.phone}
                     onChange={(e) => handleChange("phone", e.target.value)}
-                    required
                   />
                 </div>
               </CardContent>
@@ -313,6 +250,7 @@ useEffect(() => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+
                 <Select
                   value={formData.profession}
                   onValueChange={(v) => handleChange("profession", v)}
@@ -330,34 +268,32 @@ useEffect(() => {
                   </SelectContent>
                 </Select>
 
-                <Input
-                  type="number"
-                  placeholder="Hourly rate"
+                <Input type="number" placeholder="Hourly rate" required
                   value={formData.hourlyRate}
-                  onChange={(e) =>
-                    handleChange("hourlyRate", e.target.value)
-                  }
-                  required
+                  onChange={(e) => handleChange("hourlyRate", e.target.value)}
                 />
 
-                <Input
-                  type="number"
-                  placeholder="Years of experience"
+                <Input type="number" placeholder="Years of experience" required
                   value={formData.yearsExperience}
-                  onChange={(e) =>
-                    handleChange("yearsExperience", e.target.value)
-                  }
-                  required
+                  onChange={(e) => handleChange("yearsExperience", e.target.value)}
                 />
 
-                <Input
-                  placeholder="Availability (available/busy/unavailable)"
+                {/* ✅ Availability dropdown */}
+                <Select
                   value={formData.availability}
-                  onChange={(e) =>
-                    handleChange("availability", e.target.value)
-                  }
-                  required
-                />
+                  onValueChange={(v) => handleChange("availability", v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Availability" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AVAILABILITY_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
                 {/* SKILLS */}
                 <div>
@@ -376,11 +312,7 @@ useEffect(() => {
                     {skills.map((s) => (
                       <Badge key={s}>
                         {s}
-                        <button
-                          type="button"
-                          onClick={() => removeSkill(s)}
-                          className="ml-2"
-                        >
+                        <button type="button" onClick={() => removeSkill(s)} className="ml-2">
                           <X size={12} />
                         </button>
                       </Badge>
@@ -398,16 +330,13 @@ useEffect(() => {
                   Documents
                 </CardTitle>
                 <CardDescription>
-                  Upload certificates or ID (optional)
+                  Upload ID, certificates, or portfolio
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <DocumentUpload
-                  documents={documents}
-                  onDocumentsChange={setDocuments}
-                  maxFiles={10}
-                  maxSizeMB={5}
-                />
+                <Button type="button" onClick={() => setShowDocsModal(true)}>
+                  Manage Documents
+                </Button>
               </CardContent>
             </Card>
 
@@ -420,6 +349,14 @@ useEffect(() => {
           </form>
         </div>
       </main>
+
+      {showDocsModal && (
+        <FreelancerDocumentsModal
+          documents={[]}
+          onClose={() => setShowDocsModal(false)}
+          onDocumentsUpdated={() => {}}
+        />
+      )}
 
       <Footer />
     </div>
