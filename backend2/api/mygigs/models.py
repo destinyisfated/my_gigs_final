@@ -9,54 +9,13 @@ from django.utils import timezone
 
 
 # Create your models here.
-# class Freelancer(models.Model):
-#     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="freelancer_profile", null=True)
-#     profession = models.ForeignKey('Profession', on_delete=models.SET_NULL, null=True, related_name="freelancers")
-#     name = models.CharField(max_length=200)
-#     email =models.EmailField(null=True)
-#     phone=models.CharField(max_length=20, null=True)
-#     title = models.CharField(max_length=200)
-#     county = models.CharField(max_length=200)
-#     constituency = models.CharField(max_length=200)
-#     ward = models.CharField(max_length=200)
-#     rating = models.DecimalField(max_digits=2, decimal_places=1, default=0)
-#     reviews = models.IntegerField(default=0)
-#     completed_jobs = models.IntegerField(default=0)
-#     skills = models.JSONField(default=list)  # or ManyToManyField to Skill model
-#     avatar = models.ImageField(upload_to='freelancers/')  # or ImageField for actual images
-#     years_experience = models.IntegerField()
-#     hourly_rate = models.DecimalField(max_digits=10, decimal_places=2)
-#     is_featured = models.BooleanField(default=False)
-#     created_at = models.DateTimeField(auto_now_add=True)
-#     updated_at = models.DateTimeField(auto_now=True)
 
-#     def __str__(self):
-#         return self.name
-    
-#     def image_tag(self):
-#         return mark_safe('<img src="%s" width="80" />'% (self.avatar.url))
-
-
-# class Profession(models.Model):
-#     name = models.CharField(max_length=100, unique=True)
-#     image = models.ImageField(upload_to='professions/')
-#     description = models.TextField()
-#     created_at = models.DateTimeField(auto_now_add=True)
-     
-#     def __str__(self):
-#         return self.name
-    
-#     def get_freelancer_count(self):
-#         return self.freelancers.count()
-    
-#     def image_tag(self):
-#         return mark_safe('<img src="%s" width="80" />'% (self.image.url))
 class Profession(models.Model):
      """Profession/Category that freelancers can belong to"""
      name = models.CharField(max_length=100, unique=True)
      slug = models.SlugField(unique=True, null=True)
      description = models.TextField(blank=True)
-     image = models.ImageField(upload_to='professions/', blank=True, null=True)
+     image = models.ImageField(upload_to='professions/',null=True)
      is_active = models.BooleanField(default=True)
      created_at = models.DateTimeField(auto_now_add=True)
      
@@ -76,12 +35,12 @@ class Profession(models.Model):
 
 class Freelancer(models.Model):
      """Freelancer profile with all details"""
-     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='freelancer_profile', null=True)
-     profession = models.ForeignKey(Profession, on_delete=models.SET_NULL, null=True, related_name='freelancers')
+     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='freelancer_profile',null=True)
+     profession = models.ForeignKey(Profession, on_delete=models.SET_NULL, related_name='freelancers',null=True)
      
      # Personal info
-     name = models.CharField(max_length=255)
-     email = models.EmailField(unique=True, null=True)
+     name = models.CharField(max_length=255,null=True)
+     email = models.EmailField(unique=True ,null=True)
      phone = models.CharField(max_length=20, blank=True)
     #  avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
      avatar= models.CharField(max_length=5, blank=True, null=True)
@@ -204,26 +163,26 @@ class ReviewHelpful(models.Model):
 
 class MpesaTransaction(models.Model):
     # IDs for linking the initial request to the callback
-    merchant_request_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
-    checkout_request_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
+    merchant_request_id = models.CharField(max_length=255, unique=True,null=True)
+    checkout_request_id = models.CharField(max_length=255, unique=True,null=True)
     
     # Details from the initial request
-    phone_number = models.CharField(max_length=15, null=True, blank=True)
-    amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    phone_number = models.CharField(max_length=15,null=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2,null=True)
     
     # Status and details from the callback
-    result_code = models.CharField(max_length=10, null=True, blank=True)
-    result_desc = models.TextField(null=True, blank=True)
+    result_code = models.CharField(max_length=10,null=True)
+    result_desc = models.TextField(null=True)
     
     # Details from the successful transaction
-    mpesa_receipt_number = models.CharField(max_length=50, null=True, blank=True)
-    transaction_date = models.DateTimeField(null=True, blank=True)
+    mpesa_receipt_number = models.CharField(max_length=50,null=True)
+    transaction_date = models.DateTimeField(null=True)
     
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    clerk_id = models.CharField(max_length=255, null=True, blank=True)
+    clerk_id = models.CharField(max_length=255,null=True)
     
     def __str__(self):
         return f"Transaction {self.mpesa_receipt_number or self.merchant_request_id}" 
