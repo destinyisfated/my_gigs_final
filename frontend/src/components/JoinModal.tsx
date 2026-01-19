@@ -114,7 +114,7 @@ export default function JoinModal({
         setStep("success");
         setTimeout(() => {
           onOpenChange(false);
-          navigate("/freelancer/referral-confirmation");
+          navigate("/freelancer/create-profile");
         }, 2500);
       } else if (data.status === "failed") {
         setStep("failed");
